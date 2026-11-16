@@ -671,15 +671,13 @@ pub fn createMorgue() Info {
 
     const info = Info.collect(arena.allocator());
 
-    std.posix.mkdir("morgue", 0o776) catch |e| switch (e) {
-        error.PathAlreadyExists => {},
-        else => {
-            std.log.err("Could not create morgue directory: {}", .{e});
-            std.log.err("Refusing to write morgue entries.", .{});
-            return info;
-        },
+    // Asciiverse: the morgue lives in the state folder, not the current one.
+    const base = @import("asciiverse.zig").state_dir orelse std.fs.cwd();
+    const morgue_dir = base.makeOpenPath("morgue", .{}) catch |e| {
+        std.log.err("Could not create morgue directory: {}", .{e});
+        std.log.err("Refusing to write morgue entries.", .{});
+        return info;
     };
-    const morgue_dir = std.fs.cwd().openDir("morgue", .{}) catch err.wat();
 
     {
         const morgue = exportJsonMorgue(info) catch err.wat();

@@ -13,6 +13,7 @@ const meta = std.meta;
 const StackBuffer = @import("buffer.zig").StackBuffer;
 
 const ai = @import("ai.zig");
+const asciiverse = @import("asciiverse.zig");
 const alert = @import("alert.zig");
 const Coord = types.Coord;
 const Direction = types.Direction;
@@ -1391,7 +1392,11 @@ pub fn actualMain() anyerror!void {
     deinitGame();
 }
 
+// Asciiverse: the log goes to the session log in the state folder.
+pub const std_options: std.Options = .{ .logFn = asciiverse.logFn };
+
 pub fn main() void {
+    asciiverse.setup();
     actualMain() catch |e| {
         if (comptime builtin.os.tag != .windows) {
             const sentry = @import("sentry.zig");
