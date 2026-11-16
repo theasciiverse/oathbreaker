@@ -90,7 +90,7 @@ pub var alloc = if (@import("builtin").mode == .Debug)
 else
     std.heap.smp_allocator;
 
-pub var sentry_disabled = false;
+pub var sentry_disabled = true;
 pub var log_disabled = false;
 
 pub const mapgeometry = Coord.new2(LEVELS, WIDTH, HEIGHT);

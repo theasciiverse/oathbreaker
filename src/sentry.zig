@@ -30,8 +30,7 @@ comptime {
         @compileError("Windows not supported.");
 }
 
-const curl = @import("curl");
-const Easy = curl.Easy;
+// Asciiverse: crash reports are never sent, so curl is not linked.
 
 // TODO: *don't* encode this in here
 const DSN = "http://029cc3a31c3740d4a60e3747e48c4aa2@o110999.ingest.sentry.io/6550409";
@@ -133,56 +132,9 @@ pub fn captureError(
     addr: ?usize,
     alloc: std.mem.Allocator,
 ) !void {
-    var rng = std.Random.DefaultPrng.init(@intCast(std.time.timestamp()));
-    const uuid = rng.random().int(u128);
-
-    const m = try createEvent(uuid, release, dist, .Error, ename, msg, user_tags, trace, addr, alloc);
-    try uploadError(&m, alloc);
-}
-
-fn uploadError(ev: *const SentryEvent, alloc: std.mem.Allocator) !void {
-    const HOST = "sentry.io";
-    const PORT = 443;
-    const UA_STR = "zig-sentry";
-    const UA_VER = "0.1.0";
-
-    var client = std.http.Client{ .allocator = alloc };
-    defer client.deinit();
-
-    std.log.info("*** zig-sentry: connecting to {s}:{}", .{ HOST, PORT });
-
-    const ca_bundle = try curl.allocCABundle(alloc);
-    defer ca_bundle.deinit();
-    const easy = try Easy.init(.{ .ca_bundle = ca_bundle });
-    defer easy.deinit();
-
-    const body = try std.json.stringifyAlloc(alloc, ev.sentry_event, .{});
-    defer alloc.free(body);
-
-    const headers = blk: {
-        var h: Easy.Headers = .{};
-        errdefer h.deinit();
-        try h.add("Accept: */*");
-        try h.add("Content-Type: application/json");
-        try h.add(std.fmt.comptimePrint("User-Agent: {s}/{s}", .{ UA_STR, UA_VER }));
-        try h.add(std.fmt.comptimePrint("X-Sentry-Auth: Sentry sentry_key={s}", .{DSN_HASH}));
-        try h.add(std.fmt.comptimePrint("Authorization: DSN {s}", .{DSN}));
-        break :blk h;
-    };
-    defer headers.deinit();
-
-    try easy.setUrl(std.fmt.comptimePrint("https://sentry.io/api/{}/store/", .{DSN_ID}));
-    try easy.setHeaders(headers);
-    try easy.setMethod(.POST);
-    try easy.setPostFields(body);
-
-    var writer = curl.ResizableResponseWriter.init(alloc);
-    defer writer.deinit();
-    try easy.setAnyWriter(&writer.asAny());
-
-    const resp = try easy.perform();
-    std.log.info("*** zig-sentry: Status code: {d}", .{resp.status_code});
-    std.log.info("*** zig-sentry: Response body: {s}", .{writer.asSlice()});
+    // Asciiverse: the game never phones home. Crash reports used to be
+    // uploaded to sentry.io here; the details stay in the local log.
+    _ = .{ release, dist, ename, msg, user_tags, trace, addr, alloc };
 }
 
 pub fn createEvent(

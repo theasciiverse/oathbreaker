@@ -116,20 +116,7 @@ pub fn build(b: *Build) void {
     });
     exe.root_module.addImport("strig", strig);
 
-    if (is_windows) {
-        // Couldn't get this to work. Errors out with "can't find curl/curl.h",
-        // despite adding the header include portion.
-
-        // const curl = b.dependency("curl", .{ .link_vendor = false });
-        // exe.root_module.addImport("curl", curl.module("curl"));
-
-        // exe.addIncludePath(b.path("third_party/mingw/curl/include/"));
-        // exe.addObjectFile(b.path("third_party/mingw/curl/lib/libcurl.dll.a"));
-        // b.installBinFile("third_party/mingw/curl/bin/libcurl-4.dll", "libcurl-4.dll");
-    } else {
-        const curl = b.dependency("curl", .{});
-        exe.root_module.addImport("curl", curl.module("curl"));
-    }
+    // Asciiverse: no curl. It was only used to send crash reports.
 
     exe.addIncludePath(b.path("third_party/janet/")); // janet.h
     exe.addIncludePath(b.path("third_party/microtar/src/"));

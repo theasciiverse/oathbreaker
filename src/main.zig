@@ -1343,12 +1343,8 @@ pub fn actualMain() anyerror!void {
         return;
     }
 
-    if (std.process.getEnvVarOwned(state.alloc, "RL_NO_SENTRY")) |v| {
-        state.sentry_disabled = true;
-        state.alloc.free(v);
-    } else |_| {
-        state.sentry_disabled = false;
-    }
+    // Asciiverse: crash reports are never sent (RL_NO_SENTRY is always on).
+    state.sentry_disabled = true;
 
     var scale: f32 = 1;
     if (std.process.getEnvVarOwned(state.alloc, "RL_DISPLAY_SCALE")) |v| {
