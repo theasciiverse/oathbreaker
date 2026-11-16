@@ -510,7 +510,9 @@ pub fn present() void {
         },
     }
 
-    @memset(dirty, false);
+    // Asciiverse: only the SDL frontend allocates `dirty`; clearing it
+    // under termbox wrote through an undefined slice and crashed at start.
+    if (driver == .SDL2) @memset(dirty, false);
 }
 
 pub fn setCell(x: usize, y: usize, cell: Cell) void {
