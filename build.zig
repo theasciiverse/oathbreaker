@@ -126,7 +126,9 @@ pub fn build(b: *Build) void {
             "third_party/microtar/src/microtar.c", // FIXME: why is this needed
             "third_party/janet/janet.c",
         },
-        .flags = &[_][]const u8{ "-O3", "-fomit-frame-pointer", "-march=native" },
+        // Asciiverse: no -march=native, so the binary runs on any CPU of
+        // its target, not only on the machine that built it.
+        .flags = &[_][]const u8{ "-O3", "-fomit-frame-pointer" },
     });
 
     if (opt_tun_gif) {
