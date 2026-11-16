@@ -106,6 +106,9 @@ pub fn build(b: *Build) void {
         .optimize = optimize,
     });
     exe.linkLibC();
+    // Asciiverse: -Dstrip=true leaves the debug info out of release builds
+    // (about 70 MB of the binary's 76).
+    if (b.option(bool, "strip", "Leave out debug info")) |strip| exe.root_module.strip = strip;
 
     const rexpaint = b.addModule("rexpaint", .{
         .root_source_file = b.path("third_party/zig-rexpaint/lib.zig"),
