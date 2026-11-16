@@ -1,0 +1,94 @@
+# Asciiverse release workflow (tag v*-av.* or run by hand with a tag)
+# Builds Oathbreaker's terminal (termbox) edition for the Asciiverse catalog:
+# one archive per target, named <id>-<target>.tar.gz, plus SHA256SUMS,
+# attached to a GitHub release (hub/catalog/SCHEMA.md, release.source =
+# "github").
+#
+# Tags look like v4.1.0-av.1: upstream's release, then our packaging
+# release. Zig cross-compiles, so one Linux runner builds every target:
+# Linux static (musl) and macOS 11 and later; Zig signs the Apple Silicon
+# binary ad hoc. No Windows: termbox needs a POSIX terminal (termios,
+# sys/select.h); upstream's Windows builds are SDL only.
+#
+# Each archive: the oathbreaker binary at the top, where av looks for it,
+# data/ beside it (without data/font, which only the SDL edition draws),
+# COPYING, PATCHES.md and our README.md.
+
+name: release
+
+on:
+  push:
+    tags: ["v*-av.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "existing tag to build and release"
+        required: true
+
+env:
+  ID: oathbreaker
+  BIN: oathbreaker
+  TAG: ${{ inputs.tag || github.ref_name }}
+  ZIG: "0.14.0"
+  ZIG_SHA256: 473ec26806133cf4d1918caf1a410f8403a13d979726a9045b421b685031a982
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          submodules: recursive
+
+      - name: Zig
+        run: |
+          curl -sSfLO "https://ziglang.org/download/$ZIG/zig-linux-x86_64-$ZIG.tar.xz"
+          echo "$ZIG_SHA256  zig-linux-x86_64-$ZIG.tar.xz" | sha256sum -c
+          tar -xf "zig-linux-x86_64-$ZIG.tar.xz"
+          echo "$PWD/zig-linux-x86_64-$ZIG" >> "$GITHUB_PATH"
+
+      - name: Upstream's tests
+        run: |
+          zig build test --summary all
+          zig build -Doptimize=ReleaseSafe --prefix out/native
+          state="$(mktemp -d)"
+          (cd out/native/bin && OATHBREAKER_STATE_DIR="$state" RL_SEED=0xdefaced_cafe RL_MODE=tester ./oathbreaker)
+
+      - name: Build and package for av
+        run: |
+          mkdir -p dist
+          while read -r target zigtarget; do
+            rm -rf stage && mkdir -p stage
+            zig build -Doptimize=ReleaseSafe -Dstrip=true -Dcpu=baseline \
+              -Dtarget="$zigtarget" --prefix "out/$target"
+            cp "out/$target/bin/$BIN" "stage/$BIN"
+            cp -r "out/$target/bin/data" stage/data
+            rm -rf stage/data/font
+            file "stage/$BIN"
+            cp COPYING PATCHES.md stage/
+            cp asciiverse/README.md stage/README.md
+            tar -czf "dist/$ID-$target.tar.gz" -C stage .
+          done <<'TARGETS'
+          x86_64-unknown-linux-musl x86_64-linux-musl
+          aarch64-unknown-linux-musl aarch64-linux-musl
+          x86_64-apple-darwin x86_64-macos.11.0
+          aarch64-apple-darwin aarch64-macos.11.0
+          TARGETS
+          ls -l dist
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS && cat SHA256SUMS
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$TAG" -R "$GITHUB_REPOSITORY" --title "Oathbreaker $TAG" \
+                 --notes "Oathbreaker ${TAG%%-av.*} by kiedtl, the terminal edition, built for the Asciiverse catalog. Changes from upstream: see PATCHES.md."
+          gh release upload "$TAG" dist/* -R "$GITHUB_REPOSITORY" --clobber
