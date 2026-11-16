@@ -100,7 +100,7 @@ pub fn build(b: *Build) void {
     }
 
     const exe = b.addExecutable(.{
-        .name = "rl",
+        .name = "oathbreaker", // Asciiverse: named after the game (upstream: rl)
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
