@@ -135,7 +135,9 @@ pub fn build(b: *Build) void {
         exe.linkSystemLibrary("gif");
     }
 
-    if (is_windows) {
+    // Asciiverse: libpng and zlib only load the SDL frontend's font, so
+    // the terminal build links neither and can be fully static.
+    if (!opt_use_sdl) {} else if (is_windows) {
         exe.addIncludePath(b.path("third_party/mingw/zlib/include/"));
         exe.addObjectFile(b.path("third_party/mingw/zlib/lib/libz.dll.a"));
         b.installBinFile("third_party/mingw/zlib/bin/zlib1.dll", "zlib1.dll");

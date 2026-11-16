@@ -130,7 +130,7 @@ fn initGame(no_display: bool, display_scale: f32) bool {
     janet.init() catch return false;
     _ = janet.loadFile("scripts/particles.janet", state.alloc) catch return false;
 
-    font.loadFontsData();
+    if (build_options.use_sdl) font.loadFontsData(); // Asciiverse: the font only draws the SDL frontend
     state.loadStatusStringInfo();
     state.loadLevelInfo();
     surfaces.readProps(state.alloc);
@@ -230,7 +230,7 @@ fn deinitGame() void {
     literature.posters.deinit();
 
     janet.deinit();
-    font.freeFontData();
+    if (build_options.use_sdl) font.freeFontData();
     state.freeStatusStringInfo();
     state.freeLevelInfo();
     surfaces.freeProps(state.alloc);
